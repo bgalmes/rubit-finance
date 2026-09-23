@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Packaged SPA (copied at build time)
+api/src/rubit/static/
+
+# Node / Nuxt
+node_modules/
+.nuxt/
+.output/
+.data/
+.nitro/
+.cache/
+
+# Local data
+*.db
+*.sqlite
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+*.log
+.env
+.env.*
