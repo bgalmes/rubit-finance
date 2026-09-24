@@ -1,0 +1,104 @@
+{
+  "app": {
+    "title": "Rubit Finance",
+    "nav": {
+      "mortgages": "Mortgages",
+      "new": "New mortgage",
+      "compare": "Compare"
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "save": "Save",
+    "view": "View",
+    "back": "Back",
+    "notAvailable": "—",
+    "loading": "Loading…",
+    "error": "Something went wrong: {message}"
+  },
+  "frequency": {
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "perPeriod": {
+      "monthly": "/ month",
+      "annual": "/ year"
+    }
+  },
+  "mode": {
+    "purchase": "From purchase",
+    "loan": "Loan amount"
+  },
+  "fields": {
+    "name": "Descriptive name",
+    "namePlaceholder": "Mortgage N",
+    "tin": "Interest rate (TIN, %)",
+    "years": "Duration (years)",
+    "frequency": "Payment frequency",
+    "purchasePrice": "Purchase price",
+    "initialSavings": "Initial savings",
+    "initialExpenses": "Initial expenses",
+    "initialExpensesHelp": "Taxes, notary, registry, agency, …",
+    "loanAmount": "Loan amount",
+    "downPayment": "Down payment",
+    "purchasePercentage": "% of purchase price",
+    "payment": "Payment per period",
+    "totalInterest": "Total interest paid",
+    "totalPaid": "Total amount paid",
+    "conditions": "Conditions"
+  },
+  "validation": {
+    "required": "Required",
+    "positive": "Must be greater than 0",
+    "nonNegative": "Must be 0 or greater",
+    "tinRange": "Must be between 0 and 100",
+    "yearsRange": "Must be a whole number between 1 and 50",
+    "cents": "Use at most 2 decimals",
+    "savingsTooHigh": "Must be less than purchase price + initial expenses"
+  },
+  "list": {
+    "title": "Mortgages",
+    "empty": "No mortgages yet. Create one to see its amortization table.",
+    "deleteConfirm": "Delete “{name}”? This can't be undone."
+  },
+  "form": {
+    "newTitle": "New mortgage",
+    "editTitle": "Edit “{name}”",
+    "modeLabel": "How do you want to enter it?"
+  },
+  "detail": {
+    "switch": "Viewing",
+    "summary": "Summary",
+    "schedule": "Amortization table",
+    "conditions": "{tin}% TIN · {years} years · {frequency}"
+  },
+  "schedule": {
+    "period": "Period",
+    "payment": "Payment",
+    "interest": "Interest",
+    "principal": "Principal",
+    "balance": "Outstanding balance",
+    "amortized": "Amortized capital"
+  },
+  "compare": {
+    "title": "Compare mortgages",
+    "pick": "Select two or more mortgages",
+    "needTwo": "Select at least two mortgages to compare.",
+    "needMortgages": "You need at least two saved mortgages to compare.",
+    "metric": "",
+    "rows": {
+      "name": "Descriptive name",
+      "years": "Duration (years)",
+      "tin": "Interest rate (TIN)",
+      "frequency": "Payment frequency",
+      "purchasePrice": "Purchase price",
+      "initialSavings": "Initial savings",
+      "initialExpenses": "Initial expenses",
+      "downPayment": "Down payment",
+      "loanAmount": "Loan amount",
+      "purchasePercentage": "% of purchase price",
+      "payment": "Payment per period"
+    }
+  }
+}

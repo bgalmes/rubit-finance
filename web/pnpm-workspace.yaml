@@ -1,0 +1,10 @@
+allowBuilds:
+  esbuild: true
+  '@parcel/watcher': true
+  '@tailwindcss/oxide': true
+  vue-demi: true
+  unrs-resolver: true
+
+# typescript-eslint, vue-tsc and openapi-typescript need the TS 6 JS API (TS 7 has none yet).
+overrides:
+  typescript: ^6.0.3

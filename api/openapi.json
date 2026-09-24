@@ -1,0 +1,812 @@
+{
+  "components": {
+    "schemas": {
+      "AmortizationRowOut": {
+        "properties": {
+          "amortized": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amortized",
+            "type": "string"
+          },
+          "balance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Balance",
+            "type": "string"
+          },
+          "interest": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Interest",
+            "type": "string"
+          },
+          "payment": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Payment",
+            "type": "string"
+          },
+          "period": {
+            "title": "Period",
+            "type": "integer"
+          },
+          "principal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Principal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "payment",
+          "interest",
+          "principal",
+          "balance",
+          "amortized"
+        ],
+        "title": "AmortizationRowOut",
+        "type": "object"
+      },
+      "ComparisonOut": {
+        "properties": {
+          "mortgages": {
+            "items": {
+              "$ref": "#/components/schemas/MortgageOut"
+            },
+            "title": "Mortgages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mortgages"
+        ],
+        "title": "ComparisonOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LoanMortgageIn": {
+        "additionalProperties": false,
+        "properties": {
+          "frequency": {
+            "$ref": "#/components/schemas/PaymentFrequency",
+            "default": "monthly"
+          },
+          "loan_amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Loan Amount"
+          },
+          "mode": {
+            "const": "loan",
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "tin": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,8}0*$)\\d{0,3}\\.\\d{0,4}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Tin"
+          },
+          "years": {
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Years",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tin",
+          "years",
+          "mode",
+          "loan_amount"
+        ],
+        "title": "LoanMortgageIn",
+        "type": "object"
+      },
+      "MortgageDetailOut": {
+        "properties": {
+          "down_payment": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Down Payment"
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/PaymentFrequency"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "initial_expenses": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Expenses"
+          },
+          "initial_savings": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Savings"
+          },
+          "loan_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Loan Amount",
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/MortgageMode"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Payment",
+            "type": "string"
+          },
+          "purchase_percentage": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Percentage"
+          },
+          "purchase_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Price"
+          },
+          "schedule": {
+            "items": {
+              "$ref": "#/components/schemas/AmortizationRowOut"
+            },
+            "title": "Schedule",
+            "type": "array"
+          },
+          "tin": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tin",
+            "type": "string"
+          },
+          "total_interest": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Interest",
+            "type": "string"
+          },
+          "total_paid": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Paid",
+            "type": "string"
+          },
+          "years": {
+            "title": "Years",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mode",
+          "tin",
+          "years",
+          "frequency",
+          "purchase_price",
+          "initial_savings",
+          "initial_expenses",
+          "down_payment",
+          "loan_amount",
+          "purchase_percentage",
+          "payment",
+          "total_interest",
+          "total_paid",
+          "schedule"
+        ],
+        "title": "MortgageDetailOut",
+        "type": "object"
+      },
+      "MortgageMode": {
+        "enum": [
+          "purchase",
+          "loan"
+        ],
+        "title": "MortgageMode",
+        "type": "string"
+      },
+      "MortgageOut": {
+        "properties": {
+          "down_payment": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Down Payment"
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/PaymentFrequency"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "initial_expenses": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Expenses"
+          },
+          "initial_savings": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Savings"
+          },
+          "loan_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Loan Amount",
+            "type": "string"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/MortgageMode"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Payment",
+            "type": "string"
+          },
+          "purchase_percentage": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Percentage"
+          },
+          "purchase_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Price"
+          },
+          "tin": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tin",
+            "type": "string"
+          },
+          "total_interest": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Interest",
+            "type": "string"
+          },
+          "total_paid": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Paid",
+            "type": "string"
+          },
+          "years": {
+            "title": "Years",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mode",
+          "tin",
+          "years",
+          "frequency",
+          "purchase_price",
+          "initial_savings",
+          "initial_expenses",
+          "down_payment",
+          "loan_amount",
+          "purchase_percentage",
+          "payment",
+          "total_interest",
+          "total_paid"
+        ],
+        "title": "MortgageOut",
+        "type": "object"
+      },
+      "PaymentFrequency": {
+        "enum": [
+          "monthly",
+          "annual"
+        ],
+        "title": "PaymentFrequency",
+        "type": "string"
+      },
+      "PurchaseMortgageIn": {
+        "additionalProperties": false,
+        "properties": {
+          "frequency": {
+            "$ref": "#/components/schemas/PaymentFrequency",
+            "default": "monthly"
+          },
+          "initial_expenses": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Initial Expenses"
+          },
+          "initial_savings": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Initial Savings"
+          },
+          "mode": {
+            "const": "purchase",
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "purchase_price": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Purchase Price"
+          },
+          "tin": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,8}0*$)\\d{0,3}\\.\\d{0,4}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Tin"
+          },
+          "years": {
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Years",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tin",
+          "years",
+          "mode",
+          "purchase_price"
+        ],
+        "title": "PurchaseMortgageIn",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Rubit Finance",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/mortgages": {
+      "get": {
+        "operationId": "list_mortgages_api_mortgages_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MortgageOut"
+                  },
+                  "title": "Response List Mortgages Api Mortgages Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Mortgages",
+        "tags": [
+          "mortgages"
+        ]
+      },
+      "post": {
+        "operationId": "create_mortgage_api_mortgages_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PurchaseMortgageIn"
+                  },
+                  {
+                    "$ref": "#/components/schemas/LoanMortgageIn"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MortgageDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Mortgage",
+        "tags": [
+          "mortgages"
+        ]
+      }
+    },
+    "/api/mortgages/compare": {
+      "get": {
+        "operationId": "compare_mortgages_api_mortgages_compare_get",
+        "parameters": [
+          {
+            "description": "Comma-separated mortgage ids, e.g. 1,2,3",
+            "in": "query",
+            "name": "ids",
+            "required": true,
+            "schema": {
+              "description": "Comma-separated mortgage ids, e.g. 1,2,3",
+              "title": "Ids",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compare Mortgages",
+        "tags": [
+          "mortgages"
+        ]
+      }
+    },
+    "/api/mortgages/{mortgage_id}": {
+      "delete": {
+        "operationId": "delete_mortgage_api_mortgages__mortgage_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mortgage_id",
+            "required": true,
+            "schema": {
+              "title": "Mortgage Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Mortgage",
+        "tags": [
+          "mortgages"
+        ]
+      },
+      "get": {
+        "operationId": "get_mortgage_api_mortgages__mortgage_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mortgage_id",
+            "required": true,
+            "schema": {
+              "title": "Mortgage Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MortgageDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Mortgage",
+        "tags": [
+          "mortgages"
+        ]
+      },
+      "put": {
+        "operationId": "update_mortgage_api_mortgages__mortgage_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mortgage_id",
+            "required": true,
+            "schema": {
+              "title": "Mortgage Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PurchaseMortgageIn"
+                  },
+                  {
+                    "$ref": "#/components/schemas/LoanMortgageIn"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MortgageDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Mortgage",
+        "tags": [
+          "mortgages"
+        ]
+      }
+    }
+  }
+}

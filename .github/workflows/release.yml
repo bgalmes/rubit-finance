@@ -1,0 +1,98 @@
+# Release process from CONTRIBUTING.md:
+#  - Any other merge to main: python-semantic-release computes the next release candidate
+#    and (re)opens the release PR from release/next with the version bump + changelog.
+#  - Merging a release PR (commit "chore(release): X"): tag vX, build the bundle and publish
+#    a GitHub release. X with -rc.N → prerelease; without it (from promote.yml) → stable.
+#
+# Set a RELEASE_TOKEN secret (a PAT with contents + pull-requests write) so PRs opened here
+# trigger CI; the default GITHUB_TOKEN works but its PRs don't fire workflow events.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+
+jobs:
+  prepare:
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release):') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+      - uses: astral-sh/setup-uv@v6
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Bump version on release/next
+        id: bump
+        working-directory: api
+        run: |
+          git switch -C release/next
+          before="$(git rev-parse HEAD)"
+          uvx --from python-semantic-release semantic-release version \
+            --no-tag --no-push --no-vcs-release --skip-build
+          if [ "$(git rev-parse HEAD)" = "$before" ]; then
+            echo "No releasable commits since the last release."
+            echo "version=" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open or update the release PR
+        if: steps.bump.outputs.version != ''
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git push --force origin release/next
+          title="chore(release): ${VERSION}"
+          body="Release candidate **${VERSION}**. Merging this PR tags it and publishes a GitHub prerelease with the build attached. Squash-merge and keep the title: the release workflow reads it."
+          if gh pr view release/next --json state --jq .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit release/next --title "$title" --body "$body"
+          else
+            gh pr create --base main --head release/next --title "$title" --body "$body"
+          fi
+
+  publish:
+    if: ${{ startsWith(github.event.head_commit.message, 'chore(release):') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Read version
+        id: version
+        working-directory: api
+        run: echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
+      - name: Build bundle
+        run: scripts/build.sh
+      - name: Tag and publish GitHub release
+        # Only tags once the build succeeded, so a failed build leaves no orphan tag.
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          flags=()
+          if [[ "$VERSION" == *-rc.* ]]; then flags+=(--prerelease); fi
+          gh release create "v${VERSION}" dist/rubit-finance-*.zip \
+            --target "$GITHUB_SHA" --title "v${VERSION}" --generate-notes "${flags[@]}"

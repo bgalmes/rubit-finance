@@ -1,0 +1,61 @@
+# "Promote to stable" (CONTRIBUTING.md): opens a release/promote PR carrying the current
+# release candidate's version without the -rc.N suffix. Merging it runs release.yml, which
+# tags and publishes the stable release.
+name: Promote to stable
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+      - uses: astral-sh/setup-uv@v6
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Check there is a release candidate to promote
+        working-directory: api
+        run: |
+          current="$(uv version --short)"
+          if [[ "$current" != *-rc.* ]]; then
+            echo "::error::main is at ${current}, which is not a release candidate."
+            exit 1
+          fi
+      - name: Bump to the stable version on release/promote
+        id: bump
+        working-directory: api
+        run: |
+          git switch -C release/promote
+          uvx --from python-semantic-release semantic-release version \
+            --no-tag --no-push --no-vcs-release --skip-build
+          echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
+      - name: Open the promotion PR
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git push --force origin release/promote
+          title="chore(release): ${VERSION}"
+          body="Promotes the latest release candidate to stable **${VERSION}**. Squash-merge and keep the title: the release workflow reads it."
+          if gh pr view release/promote --json state --jq .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit release/promote --title "$title" --body "$body"
+          else
+            gh pr create --base main --head release/promote --title "$title" --body "$body"
+          fi
