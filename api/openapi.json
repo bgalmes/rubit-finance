@@ -103,6 +103,18 @@
             "title": "Balance",
             "type": "string"
           },
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
           "early_amortization": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Early Amortization",
@@ -140,7 +152,8 @@
           "principal",
           "early_amortization",
           "balance",
-          "amortized"
+          "amortized",
+          "date"
         ],
         "title": "AmortizationRowOut",
         "type": "object"
@@ -219,6 +232,18 @@
             ],
             "title": "Name"
           },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
           "tin": {
             "anyOf": [
               {
@@ -274,6 +299,18 @@
               }
             ],
             "title": "Down Payment"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
           },
           "frequency": {
             "$ref": "#/components/schemas/PaymentFrequency"
@@ -367,6 +404,18 @@
             "title": "Schedule",
             "type": "array"
           },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
           "tin": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Tin",
@@ -399,6 +448,8 @@
           "tin",
           "years",
           "frequency",
+          "start_date",
+          "end_date",
           "purchase_price",
           "initial_savings",
           "initial_expenses",
@@ -445,6 +496,18 @@
               }
             ],
             "title": "Down Payment"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
           },
           "frequency": {
             "$ref": "#/components/schemas/PaymentFrequency"
@@ -531,6 +594,18 @@
             ],
             "title": "Purchase Price"
           },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
           "tin": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Tin",
@@ -563,6 +638,8 @@
           "tin",
           "years",
           "frequency",
+          "start_date",
+          "end_date",
           "purchase_price",
           "initial_savings",
           "initial_expenses",
@@ -653,6 +730,18 @@
               }
             ],
             "title": "Purchase Price"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
           },
           "tin": {
             "anyOf": [

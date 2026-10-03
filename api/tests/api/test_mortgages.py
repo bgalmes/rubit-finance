@@ -1,3 +1,4 @@
+import sqlite3
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -347,6 +348,73 @@ class TestAmortizations:
         client.delete(f"/api/mortgages/{first}")
         second = create(client, reference_loan)["id"]
         assert client.get(f"/api/mortgages/{second}").json()["amortizations"] == []
+
+
+class TestStartDate:
+    def test_dated_schedule(self, client: TestClient, reference_loan: Payload) -> None:
+        body = create(client, {**reference_loan, "start_date": "2027-03-15"})
+        assert body["start_date"] == "2027-03-15"
+        assert body["end_date"] == "2057-03-01"
+        assert body["number_of_payments"] == 360
+        assert len(body["schedule"]) == 361
+        stub, first = body["schedule"][:2]
+        assert (stub["period"], stub["date"], stub["interest"]) == (0, "2027-03-01", "279.45")
+        assert (first["period"], first["date"], first["payment"]) == (1, "2027-04-01", "843.21")
+
+    def test_undated(self, client: TestClient, reference_loan: Payload) -> None:
+        body = create(client, reference_loan)
+        assert body["start_date"] is None
+        assert body["end_date"] is None
+        assert body["schedule"][0]["date"] is None
+
+    def test_amortizations_on_dated_mortgage(
+        self, client: TestClient, reference_loan: Payload
+    ) -> None:
+        mortgage_id = create(client, {**reference_loan, "start_date": "2027-03-15"})["id"]
+        response = client.put(
+            f"/api/mortgages/{mortgage_id}/amortizations/24",
+            json={"type": "periods", "periods": 24},
+        )
+        body = response.json()
+        assert body["amortizations"][0]["applied_amount"] == "9001.33"
+        assert body["schedule"][24]["early_amortization"] == "9001.33"
+        assert body["end_date"] == "2055-03-01"
+
+    def test_changing_it_deletes_amortizations(
+        self, client: TestClient, reference_loan: Payload
+    ) -> None:
+        payload = {**reference_loan, "start_date": "2027-03-15"}
+        mortgage_id = create(client, payload)["id"]
+        url = f"/api/mortgages/{mortgage_id}"
+        client.put(f"{url}/amortizations/12", json={"type": "capital", "amount": "1000"})
+        assert len(client.put(url, json=payload).json()["amortizations"]) == 1
+        body = client.put(url, json={**payload, "start_date": "2027-04-15"}).json()
+        assert body["amortizations"] == []
+        assert body["start_date"] == "2027-04-15"
+
+    def test_invalid(self, client: TestClient, reference_loan: Payload) -> None:
+        response = client.post(
+            "/api/mortgages", json={**reference_loan, "start_date": "2027-02-30"}
+        )
+        assert response.status_code == 422
+
+    def test_old_database_gets_the_column(self, tmp_path: Path, reference_loan: Payload) -> None:
+        db_path = tmp_path / "old.db"
+        with sqlite3.connect(db_path) as connection:
+            connection.execute(
+                "CREATE TABLE mortgages (id INTEGER PRIMARY KEY, name VARCHAR NOT NULL, "
+                "mode VARCHAR NOT NULL, tin VARCHAR NOT NULL, years INTEGER NOT NULL, "
+                "frequency VARCHAR NOT NULL, purchase_price VARCHAR, initial_savings VARCHAR, "
+                "initial_expenses VARCHAR, loan_amount VARCHAR, created_at DATETIME NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO mortgages VALUES (1, 'Old', 'LOAN', '3', 30, 'MONTHLY', "
+                "NULL, NULL, NULL, '200000', '2026-01-01 00:00:00')"
+            )
+        app = create_app(Settings(db_path=db_path, web_dir=None))
+        with TestClient(app) as client:
+            assert client.get("/api/mortgages/1").json()["start_date"] is None
+            assert create(client, {**reference_loan, "start_date": "2027-03-15"})["id"] == 2
 
 
 class TestSpa:

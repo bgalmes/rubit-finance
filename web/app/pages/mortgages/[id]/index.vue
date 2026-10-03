@@ -29,7 +29,7 @@ const modalOpen = ref(false)
 const modalPeriod = ref(1)
 const modalInitial = ref<AmortizationFormState>(emptyAmortizationForm())
 const modalBalance = computed(() => {
-  const row = mortgage.value?.schedule[modalPeriod.value - 1]
+  const row = mortgage.value?.schedule.find(r => r.period === modalPeriod.value)
   // The balance before this period's amortization, which is what it can repay.
   return row ? Number(row.balance) + Number(row.early_amortization) : 0
 })

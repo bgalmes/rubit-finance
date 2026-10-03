@@ -9,6 +9,15 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const perPeriod = computed(() => t(`frequency.perPeriod.${props.mortgage.frequency}`))
+const conditions = computed(() => {
+  const { tin, years, frequency, start_date: startDate } = props.mortgage
+  const line = t('detail.conditions', {
+    tin: Number(tin),
+    years,
+    frequency: t(`frequency.${frequency}`),
+  })
+  return startDate ? `${line} · ${t('detail.signed', { date: formatDate(startDate) })}` : line
+})
 const stats = computed(() => [
   { label: t('fields.loanAmount'), value: formatEUR(props.mortgage.loan_amount) },
   {
@@ -21,6 +30,9 @@ const stats = computed(() => [
   },
   { label: t('fields.totalInterest'), value: formatEUR(props.mortgage.total_interest) },
   { label: t('fields.totalPaid'), value: formatEUR(props.mortgage.total_paid) },
+  ...(props.mortgage.end_date
+    ? [{ label: t('fields.endDate'), value: formatMonth(props.mortgage.end_date) }]
+    : []),
   ...(props.amortized
     ? [
         {
@@ -48,13 +60,7 @@ const stats = computed(() => [
         {{ mortgage.name }}
       </h1>
       <p class="text-muted">
-        {{
-          t('detail.conditions', {
-            tin: Number(mortgage.tin),
-            years: mortgage.years,
-            frequency: t(`frequency.${mortgage.frequency}`),
-          })
-        }}
+        {{ conditions }}
       </p>
     </div>
     <dl class="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">

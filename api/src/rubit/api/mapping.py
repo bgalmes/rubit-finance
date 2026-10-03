@@ -26,10 +26,18 @@ def to_conditions(payload: MortgageInput) -> MortgageConditions:
             expenses=payload.initial_expenses,
         )
         return MortgageConditions(
-            tin=payload.tin, years=payload.years, frequency=payload.frequency, purchase=purchase
+            tin=payload.tin,
+            years=payload.years,
+            frequency=payload.frequency,
+            purchase=purchase,
+            start_date=payload.start_date,
         )
     return MortgageConditions(
-        tin=payload.tin, years=payload.years, frequency=payload.frequency, loan=payload.loan_amount
+        tin=payload.tin,
+        years=payload.years,
+        frequency=payload.frequency,
+        loan=payload.loan_amount,
+        start_date=payload.start_date,
     )
 
 
@@ -51,6 +59,7 @@ def apply_input(record: MortgageRecord, payload: MortgageInput) -> None:
     record.tin = payload.tin
     record.years = payload.years
     record.frequency = payload.frequency
+    record.start_date = payload.start_date
     if isinstance(payload, PurchaseMortgageIn):
         record.purchase_price = payload.purchase_price
         record.initial_savings = payload.initial_savings
@@ -73,6 +82,8 @@ def _to_out(record: MortgageRecord, summary: MortgageSummary) -> MortgageOut:
         tin=record.tin,
         years=record.years,
         frequency=record.frequency,
+        start_date=record.start_date,
+        end_date=summary.end_date,
         purchase_price=record.purchase_price if is_purchase else None,
         initial_savings=record.initial_savings if is_purchase else None,
         initial_expenses=record.initial_expenses if is_purchase else None,
@@ -104,6 +115,7 @@ def to_detail_out(
     record: MortgageRecord, amortizations: Sequence[AmortizationRecord]
 ) -> MortgageDetailOut:
     summary = _summarize(record, amortizations)
+    early_by_period = {row.period: row.early_amortization for row in summary.schedule}
     return MortgageDetailOut(
         **_to_out(record, summary).model_dump(),
         amortizations=[
@@ -112,7 +124,7 @@ def to_detail_out(
                 type=a.type,
                 amount=a.amount,
                 periods=a.periods,
-                applied_amount=summary.schedule[a.period - 1].early_amortization,
+                applied_amount=early_by_period[a.period],
             )
             for a in amortizations
         ],

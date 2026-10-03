@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 import pytest
@@ -13,6 +14,7 @@ from rubit.domain import (
     periodic_payment,
     periods_to_repay,
     present_value,
+    stub_days,
     summarize,
 )
 
@@ -400,3 +402,99 @@ class TestAmortizationValidation:
             amortization_schedule(loan_mortgage(), amortizations)
         assert exc.value.field_name == field_name
         assert exc.value.message.startswith(message)
+
+
+def dated(
+    start: date,
+    frequency: PaymentFrequency = PaymentFrequency.MONTHLY,
+    tin: str = "3",
+) -> MortgageConditions:
+    return MortgageConditions(
+        tin=D(tin), years=30, frequency=frequency, loan=D("200000"), start_date=start
+    )
+
+
+class TestStartDate:
+    """Signed 15 Mar 2027: 15..31 Mar pay interest only, regular payments from April."""
+
+    @pytest.mark.parametrize(
+        ("start", "days"),
+        [
+            (date(2027, 3, 15), 17),
+            (date(2027, 2, 1), 28),
+            (date(2028, 2, 1), 29),
+            (date(2027, 1, 31), 1),
+        ],
+    )
+    def test_stub_days(self, start: date, days: int) -> None:
+        assert stub_days(start) == days
+
+    def test_stub_row(self) -> None:
+        stub = amortization_schedule(dated(date(2027, 3, 15)))[0]
+        # 200,000 · 3% · 17 / 365
+        assert stub.period == 0
+        assert stub.date == date(2027, 3, 1)
+        assert stub.interest == D("279.45")
+        assert stub.payment == D("279.45")
+        assert stub.principal == D("0.00")
+        assert stub.early_amortization == D("0.00")
+        assert stub.balance == D("200000.00")
+        assert stub.amortized == D("0.00")
+
+    def test_signed_on_the_first_pays_the_whole_month(self) -> None:
+        stub = amortization_schedule(dated(date(2027, 2, 1)))[0]
+        assert stub.interest == D("460.27")
+
+    def test_zero_rate_stub(self) -> None:
+        stub = amortization_schedule(dated(date(2027, 3, 15), tin="0"))[0]
+        assert stub.payment == D("0.00")
+
+    def test_regular_periods_are_unchanged(self) -> None:
+        plain = amortization_schedule(loan_mortgage())
+        schedule = amortization_schedule(dated(date(2027, 3, 15)))
+        assert len(schedule) == 361
+        for row, base in zip(schedule[1:], plain, strict=True):
+            assert (row.period, row.year, row.payment, row.balance) == (
+                base.period,
+                base.year,
+                base.payment,
+                base.balance,
+            )
+        assert all(row.date is None for row in plain)
+
+    def test_monthly_dates(self) -> None:
+        schedule = amortization_schedule(dated(date(2027, 3, 15)))
+        assert schedule[1].date == date(2027, 4, 1)
+        assert schedule[9].date == date(2027, 12, 1)
+        assert schedule[10].date == date(2028, 1, 1)
+        assert schedule[-1].date == date(2057, 3, 1)
+
+    def test_annual_dates(self) -> None:
+        schedule = amortization_schedule(dated(date(2027, 12, 31), PaymentFrequency.ANNUAL))
+        assert schedule[0].date == date(2027, 12, 1)
+        assert schedule[0].interest == D("16.44")
+        assert schedule[1].date == date(2028, 12, 1)
+        assert schedule[-1].date == date(2057, 12, 1)
+
+    def test_summary(self) -> None:
+        conditions = dated(date(2027, 3, 15))
+        plain = summarize(loan_mortgage())
+        summary = summarize(conditions)
+        assert summary.number_of_payments == 360
+        assert summary.payment == plain.payment
+        assert summary.total_interest == plain.total_interest + D("279.45")
+        assert summary.total_paid == summary.loan_amount + summary.total_interest
+        assert summary.end_date == date(2057, 3, 1)
+        assert plain.end_date is None
+
+    def test_amortizations(self) -> None:
+        conditions = dated(date(2027, 3, 15))
+        summary = summarize(conditions, [by_periods(12, 12)])
+        assert summary.payments_saved == 12
+        assert summary.number_of_payments == 348
+        assert summary.end_date == date(2056, 3, 1)
+        assert summary.schedule[12].early_amortization > D("0")
+        assert (
+            summary.interest_saved
+            == summarize(loan_mortgage(), [by_periods(12, 12)]).interest_saved
+        )

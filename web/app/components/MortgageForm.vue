@@ -125,6 +125,17 @@ async function onSubmit(event: FormSubmitEvent<MortgageFormState>) {
       </UFormField>
     </div>
 
+    <div class="grid gap-4 sm:grid-cols-3">
+      <UFormField
+        :label="t('fields.startDate')"
+        :help="t('fields.startDateHelp')"
+        name="start_date"
+        class="sm:col-span-2"
+      >
+        <UInput v-model="state.start_date" type="date" class="w-full sm:w-56" />
+      </UFormField>
+    </div>
+
     <UAlert v-if="generalError" color="error" variant="subtle" :title="generalError" />
 
     <div class="flex gap-2">

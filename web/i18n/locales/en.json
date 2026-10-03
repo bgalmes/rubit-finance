@@ -50,7 +50,10 @@
     "currentPayment": "Current payment per period",
     "totalEarlyAmortized": "Total early amortized",
     "interestSaved": "Interest saved",
-    "paymentsSaved": "Term shortened by"
+    "paymentsSaved": "Term shortened by",
+    "startDate": "Signing date",
+    "startDateHelp": "Optional. Shows the payment dates; the rest of the signing month pays interest only.",
+    "endDate": "Last payment"
   },
   "validation": {
     "required": "Required",
@@ -78,10 +81,12 @@
     "switch": "Viewing",
     "summary": "Summary",
     "schedule": "Amortization table",
-    "conditions": "{tin}% TIN · {years} years · {frequency}"
+    "conditions": "{tin}% TIN · {years} years · {frequency}",
+    "signed": "signed {date}"
   },
   "schedule": {
     "year": "Year",
+    "date": "Date",
     "yearOf": "Year {year} of {total}",
     "period": "Period",
     "payment": "Payment",

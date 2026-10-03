@@ -13,6 +13,8 @@ from rubit.domain.mortgage import (
     periodic_payment,
     periods_to_repay,
     present_value,
+    stub_days,
+    stub_interest,
     summarize,
 )
 
@@ -29,5 +31,7 @@ __all__ = [
     "periodic_payment",
     "periods_to_repay",
     "present_value",
+    "stub_days",
+    "stub_interest",
     "summarize",
 ]

@@ -6,8 +6,13 @@ rounded to cents (half-up); the last period absorbs any leftover cents so the
 outstanding balance ends at exactly 0.00.
 
 Early amortizations are applied right after the regular payment of their period.
+
+With a signing date, the rest of the signing month pays interest only (Actual/365): an
+extra period 0 before the regular payments, which start the following month.
 """
 
+import calendar
+import datetime as dt
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
@@ -17,6 +22,7 @@ from math import ceil
 ZERO = Decimal(0)
 CENT = Decimal("0.01")
 HUNDRED = Decimal(100)
+DAYS_PER_YEAR = Decimal(365)
 
 MIN_YEARS = 1
 MAX_YEARS = 50
@@ -85,6 +91,8 @@ class MortgageConditions:
     frequency: PaymentFrequency = PaymentFrequency.MONTHLY
     purchase: PurchaseInfo | None = None
     loan: Decimal | None = None
+    start_date: dt.date | None = None
+    """The signing date; the rest of its month pays interest only."""
 
     def __post_init__(self) -> None:
         if not ZERO <= self.tin <= MAX_TIN:
@@ -123,6 +131,12 @@ class MortgageConditions:
     @property
     def periodic_rate(self) -> Decimal:
         return self.tin / HUNDRED / self.frequency.payments_per_year
+
+    def payment_date(self, period: int) -> dt.date | None:
+        """First day of the month ``period`` is paid in; period 0 is the signing month."""
+        if self.start_date is None:
+            return None
+        return add_months(self.start_date, period * 12 // self.frequency.payments_per_year)
 
 
 class AmortizationType(StrEnum):
@@ -172,6 +186,8 @@ class AmortizationRow:
     early_amortization: Decimal
     balance: Decimal
     amortized: Decimal
+    date: dt.date | None = None
+    """First day of the payment month, when the mortgage has a signing date."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,7 +207,25 @@ class MortgageSummary:
     """Interest saved by the early amortizations."""
     payments_saved: int
     """Periods cut from the term by the early amortizations."""
+    end_date: dt.date | None
+    """Month of the last payment, when the mortgage has a signing date."""
     schedule: tuple[AmortizationRow, ...] = field(repr=False)
+
+
+def add_months(day: dt.date, months: int) -> dt.date:
+    """First day of the month ``months`` after ``day``'s month."""
+    year, month = divmod(day.year * 12 + day.month - 1 + months, 12)
+    return dt.date(year, month + 1, 1)
+
+
+def stub_days(start: dt.date) -> int:
+    """Days from the signing day to the end of its month, both included."""
+    return calendar.monthrange(start.year, start.month)[1] - start.day + 1
+
+
+def stub_interest(loan: Decimal, tin: Decimal, start: dt.date) -> Decimal:
+    """Interest of the rest of the signing month: ``L · TIN / 100 · days / 365``."""
+    return to_cents(loan * tin / HUNDRED * stub_days(start) / DAYS_PER_YEAR)
 
 
 def periodic_payment(loan: Decimal, rate: Decimal, periods: int) -> Decimal:
@@ -238,6 +272,21 @@ def _build_schedule(
     payment = periodic_payment(loan, rate, last_period)
 
     rows: list[AmortizationRow] = []
+    if conditions.start_date is not None:
+        interest = stub_interest(loan, conditions.tin, conditions.start_date)
+        rows.append(
+            AmortizationRow(
+                period=0,
+                year=1,
+                payment=interest,
+                interest=interest,
+                principal=to_cents(ZERO),
+                early_amortization=to_cents(ZERO),
+                balance=loan,
+                amortized=to_cents(ZERO),
+                date=conditions.payment_date(0),
+            )
+        )
     balance = loan
     amortized = ZERO
     period = 0
@@ -293,6 +342,7 @@ def _build_schedule(
                 early_amortization=early,
                 balance=balance,
                 amortized=amortized,
+                date=conditions.payment_date(period),
             )
         )
 
@@ -316,6 +366,11 @@ def _total_interest(schedule: Iterable[AmortizationRow]) -> Decimal:
     return sum((row.interest for row in schedule), ZERO)
 
 
+def _payment_count(schedule: Iterable[AmortizationRow]) -> int:
+    """Regular payments, leaving out the interest-only period 0."""
+    return sum(1 for row in schedule if row.period > 0)
+
+
 def summarize(
     conditions: MortgageConditions, amortizations: Iterable[EarlyAmortization] = ()
 ) -> MortgageSummary:
@@ -332,8 +387,9 @@ def summarize(
         total_interest=total_interest,
         total_paid=loan + total_interest,
         total_early_amortized=sum((row.early_amortization for row in schedule), ZERO),
-        number_of_payments=len(schedule),
+        number_of_payments=_payment_count(schedule),
         interest_saved=_total_interest(baseline) - total_interest,
-        payments_saved=len(baseline) - len(schedule),
+        payments_saved=_payment_count(baseline) - _payment_count(schedule),
+        end_date=schedule[-1].date,
         schedule=schedule,
     )

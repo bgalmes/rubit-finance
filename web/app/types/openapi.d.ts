@@ -112,6 +112,8 @@ export interface components {
             amortized: string;
             /** Balance */
             balance: string;
+            /** Date */
+            date: string | null;
             /** Early Amortization */
             early_amortization: string;
             /** Interest */
@@ -153,6 +155,8 @@ export interface components {
             mode: "loan";
             /** Name */
             name?: string | null;
+            /** Start Date */
+            start_date?: string | null;
             /** Tin */
             tin: number | string;
             /** Years */
@@ -166,6 +170,8 @@ export interface components {
             current_payment: string;
             /** Down Payment */
             down_payment: string | null;
+            /** End Date */
+            end_date: string | null;
             frequency: components["schemas"]["PaymentFrequency"];
             /** Id */
             id: number;
@@ -192,6 +198,8 @@ export interface components {
             purchase_price: string | null;
             /** Schedule */
             schedule: components["schemas"]["AmortizationRowOut"][];
+            /** Start Date */
+            start_date: string | null;
             /** Tin */
             tin: string;
             /** Total Early Amortized */
@@ -214,6 +222,8 @@ export interface components {
             current_payment: string;
             /** Down Payment */
             down_payment: string | null;
+            /** End Date */
+            end_date: string | null;
             frequency: components["schemas"]["PaymentFrequency"];
             /** Id */
             id: number;
@@ -238,6 +248,8 @@ export interface components {
             purchase_percentage: string | null;
             /** Purchase Price */
             purchase_price: string | null;
+            /** Start Date */
+            start_date: string | null;
             /** Tin */
             tin: string;
             /** Total Early Amortized */
@@ -277,6 +289,8 @@ export interface components {
             name?: string | null;
             /** Purchase Price */
             purchase_price: number | string;
+            /** Start Date */
+            start_date?: string | null;
             /** Tin */
             tin: number | string;
             /** Years */

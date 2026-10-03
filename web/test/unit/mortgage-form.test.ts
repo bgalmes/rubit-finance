@@ -83,6 +83,7 @@ describe('mortgageFormToPayload', () => {
       tin: '3',
       years: 30,
       frequency: 'monthly',
+      start_date: null,
       purchase_price: '250000',
       initial_savings: '70000',
       initial_expenses: '20000',
@@ -96,7 +97,14 @@ describe('mortgageFormToPayload', () => {
       tin: '3',
       years: 30,
       frequency: 'annual',
+      start_date: null,
       loan_amount: '200000',
+    })
+  })
+
+  it('sends the signing date when set', () => {
+    expect(mortgageFormToPayload(loanForm({ start_date: '2027-03-15' }))).toMatchObject({
+      start_date: '2027-03-15',
     })
   })
 })
@@ -124,8 +132,15 @@ describe('mortgageToForm', () => {
       loan_amount: 100000,
       purchase_price: null,
       initial_savings: 0,
+      start_date: '',
     })
     expect(validateMortgageForm(state)).toEqual([])
+  })
+
+  it('round-trips the signing date', () => {
+    const state = mortgageToForm({ ...loanMortgage, start_date: '2027-03-15' })
+    expect(state.start_date).toBe('2027-03-15')
+    expect(mortgageFormToPayload(state).start_date).toBe('2027-03-15')
   })
 })
 
@@ -140,6 +155,7 @@ describe('sameConditions', () => {
   it('detects changed conditions', () => {
     expect(sameConditions(loan, { ...loan, years: 25 })).toBe(false)
     expect(sameConditions(loan, { ...loan, frequency: 'annual' })).toBe(false)
+    expect(sameConditions(loan, { ...loan, start_date: '2027-03-15' })).toBe(false)
     expect(sameConditions(loan, mortgageFormToPayload(purchaseForm()))).toBe(false)
   })
 })

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { formatEUR, formatPercent, NOT_AVAILABLE } from '../../app/utils/format'
+import {
+  formatDate,
+  formatEUR,
+  formatMonth,
+  formatPercent,
+  NOT_AVAILABLE,
+} from '../../app/utils/format'
 
 describe('formatEUR', () => {
   it('formats decimal strings as euros', () => {
@@ -25,5 +31,19 @@ describe('formatPercent', () => {
 
   it('shows a dash for missing values', () => {
     expect(formatPercent(null)).toBe(NOT_AVAILABLE)
+  })
+})
+
+describe('formatMonth and formatDate', () => {
+  it('formats ISO dates', () => {
+    expect(formatMonth('2027-03-01')).toBe('Mar 2027')
+    expect(formatMonth('2027-12-01')).toBe('Dec 2027')
+    expect(formatDate('2027-03-15')).toBe('15 Mar 2027')
+  })
+
+  it('shows a dash for missing values', () => {
+    expect(formatMonth(null)).toBe(NOT_AVAILABLE)
+    expect(formatDate('')).toBe(NOT_AVAILABLE)
+    expect(formatDate('nope')).toBe(NOT_AVAILABLE)
   })
 })

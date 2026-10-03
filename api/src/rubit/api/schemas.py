@@ -1,5 +1,6 @@
 """HTTP request/response schemas. Decimals are serialized as JSON strings."""
 
+import datetime as dt
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -19,6 +20,8 @@ class MortgageBaseIn(BaseModel):
     tin: Annotated[Decimal, Field(ge=0, le=MAX_TIN, max_digits=7, decimal_places=4)]
     years: int = Field(ge=MIN_YEARS, le=MAX_YEARS)
     frequency: PaymentFrequency = PaymentFrequency.MONTHLY
+    start_date: dt.date | None = None
+    """The signing date; the rest of its month pays interest only."""
 
     @field_validator("name")
     @classmethod
@@ -71,6 +74,8 @@ class AmortizationRowOut(BaseModel):
     early_amortization: Decimal
     balance: Decimal
     amortized: Decimal
+    date: dt.date | None
+    """First day of the payment month, when the mortgage has a signing date."""
 
 
 class MortgageOut(BaseModel):
@@ -80,6 +85,9 @@ class MortgageOut(BaseModel):
     tin: Decimal
     years: int
     frequency: PaymentFrequency
+    start_date: dt.date | None
+    end_date: dt.date | None
+    """Month of the last payment, when the mortgage has a signing date."""
     purchase_price: Decimal | None
     initial_savings: Decimal | None
     initial_expenses: Decimal | None

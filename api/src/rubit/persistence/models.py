@@ -1,6 +1,6 @@
 """Database models. Only the mortgage inputs are stored; derived data is computed on request."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
 
@@ -48,6 +48,7 @@ class MortgageRecord(SQLModel, table=True):
     initial_savings: Decimal | None = Field(default=None, sa_type=DecimalString)
     initial_expenses: Decimal | None = Field(default=None, sa_type=DecimalString)
     loan_amount: Decimal | None = Field(default=None, sa_type=DecimalString)
+    start_date: date | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     def to_conditions(self) -> MortgageConditions:
@@ -65,6 +66,7 @@ class MortgageRecord(SQLModel, table=True):
             frequency=self.frequency,
             purchase=purchase,
             loan=self.loan_amount if self.mode is MortgageMode.LOAN else None,
+            start_date=self.start_date,
         )
 
 

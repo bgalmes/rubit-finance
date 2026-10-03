@@ -8,6 +8,8 @@ export interface MortgageFormState {
   tin: number | null
   years: number | null
   frequency: PaymentFrequency
+  /** Signing date as `YYYY-MM-DD`; empty when not set. */
+  start_date: string
   purchase_price: number | null
   initial_savings: number | null
   initial_expenses: number | null
@@ -33,6 +35,7 @@ export function emptyMortgageForm(): MortgageFormState {
     tin: null,
     years: null,
     frequency: 'monthly',
+    start_date: '',
     purchase_price: null,
     initial_savings: 0,
     initial_expenses: 0,
@@ -51,6 +54,7 @@ export function mortgageToForm(mortgage: Mortgage): MortgageFormState {
     tin: Number(mortgage.tin),
     years: mortgage.years,
     frequency: mortgage.frequency,
+    start_date: mortgage.start_date ?? '',
     purchase_price: toNumberOrNull(mortgage.purchase_price),
     initial_savings: toNumberOrNull(mortgage.initial_savings) ?? 0,
     initial_expenses: toNumberOrNull(mortgage.initial_expenses) ?? 0,
@@ -108,6 +112,7 @@ export function mortgageFormToPayload(state: MortgageFormState): MortgageInput {
     tin: String(state.tin ?? 0),
     years: state.years ?? 0,
     frequency: state.frequency,
+    start_date: state.start_date || null,
   }
   if (state.mode === 'purchase') {
     return {

@@ -39,6 +39,7 @@ These fields are always shown, whichever mode you use:
 | Interest rate (TIN)    |               | Required. Nominal annual rate, in %.             |
 | Duration (years)       |               | Required. Whole years.                           |
 | Payment frequency      | Monthly       | Required. Monthly (12 payments/year) or Annual (1 payment/year). |
+| Signing date           |               | Optional. Gives the amortization table calendar dates (see [Calculations](#calculations)). |
 
 **Mode A: from purchase.** Fill in the next fields:
 
@@ -90,6 +91,7 @@ Formulas:
   * principal = P − interest
   * balance = balance − principal
   * amortized capital = amortized capital + principal
+* **Signing date** (optional): from the signing day to the end of its month, both included, only interest is paid. It is an extra **period 0** row before the regular payments: interest = `L · TIN / 100 · days / 365` (Actual/365), principal 0. Period `i` falls in the month `i · 12 / k` months after the signing month (monthly: period 1 is the month after signing; annual: the same month one year later). Period 0 counts in the total interest and total amount paid, not in the number of payments, and takes no early amortization.
 * **Total interest** = sum of the interest column.
 * **Total amount paid** = L + total interest.
 
@@ -111,7 +113,7 @@ Rules:
 * The amount must be > 0 and at most the outstanding balance after that period's payment. Repaying the whole balance cancels the loan.
 * `N` must be ≥ 1 and at most the remaining periods.
 * An amortization can't fall on a period after the loan is already paid off, including when earlier amortizations shortened the term.
-* Editing the mortgage conditions (anything but the name) deletes its early amortizations, after a confirmation.
+* Editing the mortgage conditions (anything but the name, including the signing date) deletes its early amortizations, after a confirmation.
 * There is no early-repayment fee.
 
 With amortizations, the summary also shows the current payment per period, the total early amortized, the interest saved and how much the term was shortened, compared with the same mortgage without amortizations. Total interest and total amount paid include their effect.
@@ -122,15 +124,18 @@ This is a separate view with the details of the saved mortgages. From this view 
 
 Single mortgage view:
 
-* Descriptive name and conditions (TIN, duration, payment frequency).
+* Descriptive name and conditions (TIN, duration, payment frequency, signing date if set).
 * Loan amount.
 * Mortgage percentage of the purchase price (`—` in mode B).
 * Payment per period.
 * Total interest paid.
 * Total amount paid.
+* Last payment month (only with a signing date).
 * Amortization table.
 
 The amortization table has the next columns: Year (monthly payments only), Period, Payment, Interest, Principal (amortization payment), Early amortization, Outstanding balance (living capital) and Amortized capital. Monthly schedules show one year per page.
+
+With a signing date, monthly schedules replace Year with Date (month and year, e.g. `Mar 2027`) and show one calendar year per page; annual schedules get a Year column with the calendar year.
 
 Multiple mortgage view:
 

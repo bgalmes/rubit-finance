@@ -13,17 +13,47 @@ const emit = defineEmits<{
 }>()
 const { t } = useI18n()
 
-// Monthly schedules show one year per page; annual ones fit on a single page.
 const isMonthly = computed(() => props.frequency === 'monthly')
-const perPage = computed(() => (isMonthly.value ? 12 : props.schedule.length))
-const pageCount = computed(() => Math.max(1, Math.ceil(props.schedule.length / perPage.value)))
+// Mortgages with a signing date get a calendar date on every row.
+const isDated = computed(() => props.schedule[0]?.date != null)
+const calendarYear = (row: AmortizationRow) => Number(row.date?.slice(0, 4))
+
+// Monthly schedules show one year per page (a calendar year when dated); annual ones fit on
+// a single page.
+const pages = computed<AmortizationRow[][]>(() => {
+  if (!isMonthly.value) return [props.schedule]
+  const result: AmortizationRow[][] = []
+  props.schedule.forEach((row, index) => {
+    const previous = props.schedule[index - 1]
+    const startsPage = isDated.value
+      ? previous === undefined || calendarYear(row) !== calendarYear(previous)
+      : index % 12 === 0
+    if (startsPage) result.push([])
+    result.at(-1)!.push(row)
+  })
+  return result.length > 0 ? result : [[]]
+})
+const pageCount = computed(() => pages.value.length)
 const page = ref(1)
 // Amortizations can shorten the schedule: stay on the same year while it still exists.
 watch(pageCount, count => (page.value = Math.min(page.value, count)))
 
-const rows = computed(() => {
-  const start = (page.value - 1) * perPage.value
-  return props.schedule.slice(start, start + perPage.value)
+const rows = computed(() => pages.value[page.value - 1] ?? [])
+const pageLabel = computed(() =>
+  isDated.value
+    ? String(calendarYear(rows.value[0]!))
+    : t('schedule.yearOf', { year: page.value, total: pageCount.value }),
+)
+
+const dateColumn = computed<TableColumn<AmortizationRow>[]>(() => {
+  if (isDated.value) {
+    return [
+      isMonthly.value
+        ? { id: 'date', header: t('schedule.date'), cell: ({ row }) => formatMonth(row.original.date) }
+        : { id: 'date', header: t('schedule.year'), cell: ({ row }) => calendarYear(row.original) },
+    ]
+  }
+  return isMonthly.value ? [{ accessorKey: 'year', header: t('schedule.year') }] : []
 })
 
 const hasEarly = (row: AmortizationRow) => Number(row.early_amortization) > 0
@@ -37,7 +67,7 @@ const money = (key: 'payment' | 'interest' | 'principal' | 'balance' | 'amortize
 const right = { class: { td: 'text-right tabular-nums', th: 'text-right' } }
 
 const columns = computed<TableColumn<AmortizationRow>[]>(() => [
-  ...(isMonthly.value ? [{ accessorKey: 'year', header: t('schedule.year') }] : []),
+  ...dateColumn.value,
   { accessorKey: 'period', header: t('schedule.period') },
   money('payment'),
   money('interest'),
@@ -77,7 +107,7 @@ const columns = computed<TableColumn<AmortizationRow>[]>(() => [
           />
         </div>
         <UButton
-          v-else-if="Number(row.original.balance) > 0"
+          v-else-if="row.original.period > 0 && Number(row.original.balance) > 0"
           icon="i-lucide-piggy-bank"
           size="xs"
           color="neutral"
@@ -89,9 +119,9 @@ const columns = computed<TableColumn<AmortizationRow>[]>(() => [
     </UTable>
     <div v-if="pageCount > 1" class="flex flex-wrap items-center justify-center gap-3">
       <span class="text-sm text-muted" data-testid="year-label">
-        {{ t('schedule.yearOf', { year: page, total: pageCount }) }}
+        {{ pageLabel }}
       </span>
-      <UPagination v-model:page="page" :total="schedule.length" :items-per-page="perPage" />
+      <UPagination v-model:page="page" :total="pageCount" :items-per-page="1" />
     </div>
   </div>
 </template>
