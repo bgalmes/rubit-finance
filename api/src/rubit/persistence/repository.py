@@ -3,7 +3,7 @@ from collections.abc import Sequence
 
 from sqlmodel import Session, col, select
 
-from rubit.persistence.models import MortgageRecord
+from rubit.persistence.models import AmortizationRecord, MortgageRecord
 
 DEFAULT_NAME_PATTERN = re.compile(r"^Mortgage (\d+)$")
 
@@ -31,8 +31,40 @@ class MortgageRepository:
         return record
 
     def delete(self, record: MortgageRecord) -> None:
+        assert record.id is not None
+        self._delete_amortizations(record.id)
         self._session.delete(record)
         self._session.commit()
+
+    def amortizations(self, mortgage_id: int) -> Sequence[AmortizationRecord]:
+        statement = (
+            select(AmortizationRecord)
+            .where(AmortizationRecord.mortgage_id == mortgage_id)
+            .order_by(col(AmortizationRecord.period))
+        )
+        return self._session.exec(statement).all()
+
+    def get_amortization(self, mortgage_id: int, period: int) -> AmortizationRecord | None:
+        statement = select(AmortizationRecord).where(
+            AmortizationRecord.mortgage_id == mortgage_id, AmortizationRecord.period == period
+        )
+        return self._session.exec(statement).first()
+
+    def save_amortization(self, record: AmortizationRecord) -> None:
+        self._session.add(record)
+        self._session.commit()
+
+    def delete_amortization(self, record: AmortizationRecord) -> None:
+        self._session.delete(record)
+        self._session.commit()
+
+    def delete_amortizations(self, mortgage_id: int) -> None:
+        self._delete_amortizations(mortgage_id)
+        self._session.commit()
+
+    def _delete_amortizations(self, mortgage_id: int) -> None:
+        for amortization in self.amortizations(mortgage_id):
+            self._session.delete(amortization)
 
     def next_default_name(self) -> str:
         """``Mortgage N`` with the smallest N not already used by a default-style name."""

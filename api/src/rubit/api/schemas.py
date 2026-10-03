@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from rubit.domain import PaymentFrequency
+from rubit.domain import AmortizationType, PaymentFrequency
 from rubit.domain.mortgage import MAX_TIN, MAX_YEARS, MIN_YEARS
 from rubit.persistence import MortgageMode
 
@@ -43,11 +43,32 @@ class LoanMortgageIn(MortgageBaseIn):
 MortgageIn = Annotated[PurchaseMortgageIn | LoanMortgageIn, Field(discriminator="mode")]
 
 
+class AmortizationIn(BaseModel):
+    """An early amortization: an ``amount``, or (``periods`` type) the ``periods`` to cut."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: AmortizationType
+    amount: Annotated[Money, Field(gt=0)] | None = None
+    periods: int | None = Field(default=None, ge=1)
+
+
+class AmortizationOut(BaseModel):
+    period: int
+    type: AmortizationType
+    amount: Decimal | None
+    periods: int | None
+    applied_amount: Decimal
+    """The amount actually repaid (derived when given as a number of periods)."""
+
+
 class AmortizationRowOut(BaseModel):
     period: int
+    year: int
     payment: Decimal
     interest: Decimal
     principal: Decimal
+    early_amortization: Decimal
     balance: Decimal
     amortized: Decimal
 
@@ -66,11 +87,17 @@ class MortgageOut(BaseModel):
     loan_amount: Decimal
     purchase_percentage: Decimal | None
     payment: Decimal
+    current_payment: Decimal
     total_interest: Decimal
     total_paid: Decimal
+    total_early_amortized: Decimal
+    number_of_payments: int
+    interest_saved: Decimal
+    payments_saved: int
 
 
 class MortgageDetailOut(MortgageOut):
+    amortizations: list[AmortizationOut]
     schedule: list[AmortizationRowOut]
 
 

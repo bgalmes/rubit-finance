@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MortgageInput } from '~/types/api'
-import { mortgageToForm } from '~/utils/mortgage-form'
+import { mortgageFormToPayload, mortgageToForm, sameConditions } from '~/utils/mortgage-form'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -10,7 +10,13 @@ const id = Number(route.params.id)
 const { data: mortgage, error } = await useAsyncData(`mortgage-${id}`, () => api.get(id))
 
 async function save(payload: MortgageInput) {
-  await api.update(id, payload)
+  const current = mortgage.value
+  const dropsAmortizations = current !== null && current !== undefined
+    && current.amortizations.length > 0
+    && !sameConditions(mortgageFormToPayload(mortgageToForm(current)), payload)
+  if (dropsAmortizations && !window.confirm(t('form.amortizationsWillBeDeleted'))) return
+  // Shares the `mortgage-${id}` cache with the detail page, which then shows the update.
+  mortgage.value = await api.update(id, payload)
   await navigateTo(`/mortgages/${id}`)
 }
 </script>

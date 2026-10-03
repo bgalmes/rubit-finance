@@ -97,6 +97,25 @@ Money handling: all calculations use Python `Decimal` at full precision. Results
 
 Reference example: L = 200,000 €, TIN 3%, 30 years, monthly → P ≈ 843.21 €.
 
+#### Early amortizations
+
+From the amortization table of a saved mortgage you can register an early amortization on any period. It is applied right after that period's regular payment, and there is at most one per period. There are two types:
+
+* **Capital**: you enter an amount. The term stays the same and the payment is recalculated over the remaining periods: `P' = periodic payment(new balance, r, remaining periods)`.
+* **Periods**: the payment stays the same and the term gets shorter. You enter either:
+  * an amount: the loan is repaid with the same payment, so it ends earlier (the last payment may be smaller), or
+  * a number of periods `N` to cut (months for monthly payments, years for annual ones): the amount is derived as `balance − P · (1 − (1 + r)^−(m − N)) / r` (or `balance − P · (m − N)` if `r = 0`), where `m` is the number of remaining periods.
+
+Rules:
+
+* The amount must be > 0 and at most the outstanding balance after that period's payment. Repaying the whole balance cancels the loan.
+* `N` must be ≥ 1 and at most the remaining periods.
+* An amortization can't fall on a period after the loan is already paid off, including when earlier amortizations shortened the term.
+* Editing the mortgage conditions (anything but the name) deletes its early amortizations, after a confirmation.
+* There is no early-repayment fee.
+
+With amortizations, the summary also shows the current payment per period, the total early amortized, the interest saved and how much the term was shortened, compared with the same mortgage without amortizations. Total interest and total amount paid include their effect.
+
 #### Mortgage data
 
 This is a separate view with the details of the saved mortgages. From this view you can switch the mortgage being viewed, edit or delete it, or compare several saved mortgages in a single table.
@@ -111,7 +130,7 @@ Single mortgage view:
 * Total amount paid.
 * Amortization table.
 
-The amortization table has the next columns: Period, Payment, Interest, Principal (amortization payment), Outstanding balance (living capital) and Amortized capital.
+The amortization table has the next columns: Year (monthly payments only), Period, Payment, Interest, Principal (amortization payment), Early amortization, Outstanding balance (living capital) and Amortized capital. Monthly schedules show one year per page.
 
 Multiple mortgage view:
 
@@ -133,7 +152,6 @@ For mortgages entered in mode B, the purchase-related rows (purchase price, init
 
 ### Future implementation
 
-* Given a amortization, what are you going to save.
 * Variable interest rate mortgages.
 * Mixed interest rate mortgages.
 * Desktop packaging (Linux and Windows installers).
@@ -199,6 +217,8 @@ Endpoints:
 | PUT    | `/api/mortgages/{id}`              | Edit a mortgage.                                          |
 | DELETE | `/api/mortgages/{id}`              | Delete a mortgage.                                        |
 | GET    | `/api/mortgages/compare?ids=1,2,…` | Comparison rows for the selected mortgages.               |
+| PUT    | `/api/mortgages/{id}/amortizations/{period}` | Create or replace the early amortization of a period. |
+| DELETE | `/api/mortgages/{id}/amortizations/{period}` | Delete the early amortization of a period.   |
 
 * Decimal amounts are serialized as strings to avoid losing precision.
 * The OpenAPI schema is used to generate the TypeScript types for the frontend (`openapi-typescript`).

@@ -1,6 +1,96 @@
 {
   "components": {
     "schemas": {
+      "AmortizationIn": {
+        "additionalProperties": false,
+        "description": "An early amortization: an ``amount``, or (``periods`` type) the ``periods`` to cut.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "periods": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Periods"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AmortizationType"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "AmortizationIn",
+        "type": "object"
+      },
+      "AmortizationOut": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "applied_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Applied Amount",
+            "type": "string"
+          },
+          "period": {
+            "title": "Period",
+            "type": "integer"
+          },
+          "periods": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Periods"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AmortizationType"
+          }
+        },
+        "required": [
+          "period",
+          "type",
+          "amount",
+          "periods",
+          "applied_amount"
+        ],
+        "title": "AmortizationOut",
+        "type": "object"
+      },
       "AmortizationRowOut": {
         "properties": {
           "amortized": {
@@ -11,6 +101,11 @@
           "balance": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Balance",
+            "type": "string"
+          },
+          "early_amortization": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Early Amortization",
             "type": "string"
           },
           "interest": {
@@ -31,18 +126,32 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Principal",
             "type": "string"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
           }
         },
         "required": [
           "period",
+          "year",
           "payment",
           "interest",
           "principal",
+          "early_amortization",
           "balance",
           "amortized"
         ],
         "title": "AmortizationRowOut",
         "type": "object"
+      },
+      "AmortizationType": {
+        "enum": [
+          "capital",
+          "periods"
+        ],
+        "title": "AmortizationType",
+        "type": "string"
       },
       "ComparisonOut": {
         "properties": {
@@ -142,6 +251,18 @@
       },
       "MortgageDetailOut": {
         "properties": {
+          "amortizations": {
+            "items": {
+              "$ref": "#/components/schemas/AmortizationOut"
+            },
+            "title": "Amortizations",
+            "type": "array"
+          },
+          "current_payment": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Current Payment",
+            "type": "string"
+          },
           "down_payment": {
             "anyOf": [
               {
@@ -185,6 +306,11 @@
             ],
             "title": "Initial Savings"
           },
+          "interest_saved": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Interest Saved",
+            "type": "string"
+          },
           "loan_amount": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Loan Amount",
@@ -197,10 +323,18 @@
             "title": "Name",
             "type": "string"
           },
+          "number_of_payments": {
+            "title": "Number Of Payments",
+            "type": "integer"
+          },
           "payment": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Payment",
             "type": "string"
+          },
+          "payments_saved": {
+            "title": "Payments Saved",
+            "type": "integer"
           },
           "purchase_percentage": {
             "anyOf": [
@@ -238,6 +372,11 @@
             "title": "Tin",
             "type": "string"
           },
+          "total_early_amortized": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Early Amortized",
+            "type": "string"
+          },
           "total_interest": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Total Interest",
@@ -267,8 +406,14 @@
           "loan_amount",
           "purchase_percentage",
           "payment",
+          "current_payment",
           "total_interest",
           "total_paid",
+          "total_early_amortized",
+          "number_of_payments",
+          "interest_saved",
+          "payments_saved",
+          "amortizations",
           "schedule"
         ],
         "title": "MortgageDetailOut",
@@ -284,6 +429,11 @@
       },
       "MortgageOut": {
         "properties": {
+          "current_payment": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Current Payment",
+            "type": "string"
+          },
           "down_payment": {
             "anyOf": [
               {
@@ -327,6 +477,11 @@
             ],
             "title": "Initial Savings"
           },
+          "interest_saved": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Interest Saved",
+            "type": "string"
+          },
           "loan_amount": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Loan Amount",
@@ -339,10 +494,18 @@
             "title": "Name",
             "type": "string"
           },
+          "number_of_payments": {
+            "title": "Number Of Payments",
+            "type": "integer"
+          },
           "payment": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Payment",
             "type": "string"
+          },
+          "payments_saved": {
+            "title": "Payments Saved",
+            "type": "integer"
           },
           "purchase_percentage": {
             "anyOf": [
@@ -371,6 +534,11 @@
           "tin": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Tin",
+            "type": "string"
+          },
+          "total_early_amortized": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Early Amortized",
             "type": "string"
           },
           "total_interest": {
@@ -402,8 +570,13 @@
           "loan_amount",
           "purchase_percentage",
           "payment",
+          "current_payment",
           "total_interest",
-          "total_paid"
+          "total_paid",
+          "total_early_amortized",
+          "number_of_payments",
+          "interest_saved",
+          "payments_saved"
         ],
         "title": "MortgageOut",
         "type": "object"
@@ -803,6 +976,119 @@
           }
         },
         "summary": "Update Mortgage",
+        "tags": [
+          "mortgages"
+        ]
+      }
+    },
+    "/api/mortgages/{mortgage_id}/amortizations/{period}": {
+      "delete": {
+        "operationId": "delete_amortization_api_mortgages__mortgage_id__amortizations__period__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mortgage_id",
+            "required": true,
+            "schema": {
+              "title": "Mortgage Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Period",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MortgageDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Amortization",
+        "tags": [
+          "mortgages"
+        ]
+      },
+      "put": {
+        "description": "Create or replace the early amortization made after ``period``'s payment.",
+        "operationId": "save_amortization_api_mortgages__mortgage_id__amortizations__period__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mortgage_id",
+            "required": true,
+            "schema": {
+              "title": "Mortgage Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "period",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Period",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AmortizationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MortgageDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Amortization",
         "tags": [
           "mortgages"
         ]

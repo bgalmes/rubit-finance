@@ -46,7 +46,11 @@
     "payment": "Payment per period",
     "totalInterest": "Total interest paid",
     "totalPaid": "Total amount paid",
-    "conditions": "Conditions"
+    "conditions": "Conditions",
+    "currentPayment": "Current payment per period",
+    "totalEarlyAmortized": "Total early amortized",
+    "interestSaved": "Interest saved",
+    "paymentsSaved": "Term shortened by"
   },
   "validation": {
     "required": "Required",
@@ -55,7 +59,9 @@
     "tinRange": "Must be between 0 and 100",
     "yearsRange": "Must be a whole number between 1 and 50",
     "cents": "Use at most 2 decimals",
-    "savingsTooHigh": "Must be less than purchase price + initial expenses"
+    "savingsTooHigh": "Must be less than purchase price + initial expenses",
+    "wholePositive": "Must be a whole number of 1 or more",
+    "aboveBalance": "Must not exceed the outstanding balance"
   },
   "list": {
     "title": "Mortgages",
@@ -65,7 +71,8 @@
   "form": {
     "newTitle": "New mortgage",
     "editTitle": "Edit “{name}”",
-    "modeLabel": "How do you want to enter it?"
+    "modeLabel": "How do you want to enter it?",
+    "amortizationsWillBeDeleted": "Changing the conditions deletes this mortgage's early amortizations. Continue?"
   },
   "detail": {
     "switch": "Viewing",
@@ -74,10 +81,13 @@
     "conditions": "{tin}% TIN · {years} years · {frequency}"
   },
   "schedule": {
+    "year": "Year",
+    "yearOf": "Year {year} of {total}",
     "period": "Period",
     "payment": "Payment",
     "interest": "Interest",
     "principal": "Principal",
+    "earlyAmortization": "Early amortization",
     "balance": "Outstanding balance",
     "amortized": "Amortized capital"
   },
@@ -99,6 +109,38 @@
       "loanAmount": "Loan amount",
       "purchasePercentage": "% of purchase price",
       "payment": "Payment per period"
+    }
+  },
+  "amortization": {
+    "add": "Amortize",
+    "edit": "Edit early amortization",
+    "remove": "Delete early amortization",
+    "removeConfirm": "Delete the early amortization of period {period}?",
+    "title": "Early amortization · period {period}",
+    "balanceHint": "Made after this period's payment. Outstanding balance: {balance}.",
+    "typeLabel": "Type",
+    "type": {
+      "capital": "Capital",
+      "periods": "Periods"
+    },
+    "typeHelp": {
+      "capital": "Keeps the term and lowers the payment.",
+      "periods": "Keeps the payment and shortens the term."
+    },
+    "entryLabel": "Enter it as",
+    "entry": {
+      "amount": "An amount",
+      "periods": "Number of {unit}"
+    },
+    "amountLabel": "Amount",
+    "periodsLabel": "Cut from the term ({unit})",
+    "unit": {
+      "monthly": "months",
+      "annual": "years"
+    },
+    "count": {
+      "monthly": "0 months | {n} month | {n} months",
+      "annual": "0 years | {n} year | {n} years"
     }
   }
 }

@@ -58,16 +58,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mortgages/{mortgage_id}/amortizations/{period}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save Amortization
+         * @description Create or replace the early amortization made after ``period``'s payment.
+         */
+        put: operations["save_amortization_api_mortgages__mortgage_id__amortizations__period__put"];
+        post?: never;
+        /** Delete Amortization */
+        delete: operations["delete_amortization_api_mortgages__mortgage_id__amortizations__period__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AmortizationIn
+         * @description An early amortization: an ``amount``, or (``periods`` type) the ``periods`` to cut.
+         */
+        AmortizationIn: {
+            /** Amount */
+            amount?: number | string | null;
+            /** Periods */
+            periods?: number | null;
+            type: components["schemas"]["AmortizationType"];
+        };
+        /** AmortizationOut */
+        AmortizationOut: {
+            /** Amount */
+            amount: string | null;
+            /** Applied Amount */
+            applied_amount: string;
+            /** Period */
+            period: number;
+            /** Periods */
+            periods: number | null;
+            type: components["schemas"]["AmortizationType"];
+        };
         /** AmortizationRowOut */
         AmortizationRowOut: {
             /** Amortized */
             amortized: string;
             /** Balance */
             balance: string;
+            /** Early Amortization */
+            early_amortization: string;
             /** Interest */
             interest: string;
             /** Payment */
@@ -76,7 +122,14 @@ export interface components {
             period: number;
             /** Principal */
             principal: string;
+            /** Year */
+            year: number;
         };
+        /**
+         * AmortizationType
+         * @enum {string}
+         */
+        AmortizationType: "capital" | "periods";
         /** ComparisonOut */
         ComparisonOut: {
             /** Mortgages */
@@ -107,6 +160,10 @@ export interface components {
         };
         /** MortgageDetailOut */
         MortgageDetailOut: {
+            /** Amortizations */
+            amortizations: components["schemas"]["AmortizationOut"][];
+            /** Current Payment */
+            current_payment: string;
             /** Down Payment */
             down_payment: string | null;
             frequency: components["schemas"]["PaymentFrequency"];
@@ -116,13 +173,19 @@ export interface components {
             initial_expenses: string | null;
             /** Initial Savings */
             initial_savings: string | null;
+            /** Interest Saved */
+            interest_saved: string;
             /** Loan Amount */
             loan_amount: string;
             mode: components["schemas"]["MortgageMode"];
             /** Name */
             name: string;
+            /** Number Of Payments */
+            number_of_payments: number;
             /** Payment */
             payment: string;
+            /** Payments Saved */
+            payments_saved: number;
             /** Purchase Percentage */
             purchase_percentage: string | null;
             /** Purchase Price */
@@ -131,6 +194,8 @@ export interface components {
             schedule: components["schemas"]["AmortizationRowOut"][];
             /** Tin */
             tin: string;
+            /** Total Early Amortized */
+            total_early_amortized: string;
             /** Total Interest */
             total_interest: string;
             /** Total Paid */
@@ -145,6 +210,8 @@ export interface components {
         MortgageMode: "purchase" | "loan";
         /** MortgageOut */
         MortgageOut: {
+            /** Current Payment */
+            current_payment: string;
             /** Down Payment */
             down_payment: string | null;
             frequency: components["schemas"]["PaymentFrequency"];
@@ -154,19 +221,27 @@ export interface components {
             initial_expenses: string | null;
             /** Initial Savings */
             initial_savings: string | null;
+            /** Interest Saved */
+            interest_saved: string;
             /** Loan Amount */
             loan_amount: string;
             mode: components["schemas"]["MortgageMode"];
             /** Name */
             name: string;
+            /** Number Of Payments */
+            number_of_payments: number;
             /** Payment */
             payment: string;
+            /** Payments Saved */
+            payments_saved: number;
             /** Purchase Percentage */
             purchase_percentage: string | null;
             /** Purchase Price */
             purchase_price: string | null;
             /** Tin */
             tin: string;
+            /** Total Early Amortized */
+            total_early_amortized: string;
             /** Total Interest */
             total_interest: string;
             /** Total Paid */
@@ -397,6 +472,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_amortization_api_mortgages__mortgage_id__amortizations__period__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mortgage_id: number;
+                period: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AmortizationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MortgageDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_amortization_api_mortgages__mortgage_id__amortizations__period__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mortgage_id: number;
+                period: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MortgageDetailOut"];
+                };
             };
             /** @description Validation Error */
             422: {

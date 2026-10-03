@@ -4,11 +4,17 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import Dialect, String
+from sqlalchemy import Dialect, String, UniqueConstraint
 from sqlalchemy.types import TypeDecorator
 from sqlmodel import Field, SQLModel
 
-from rubit.domain import MortgageConditions, PaymentFrequency, PurchaseInfo
+from rubit.domain import (
+    AmortizationType,
+    EarlyAmortization,
+    MortgageConditions,
+    PaymentFrequency,
+    PurchaseInfo,
+)
 
 
 class DecimalString(TypeDecorator[Decimal]):
@@ -59,4 +65,23 @@ class MortgageRecord(SQLModel, table=True):
             frequency=self.frequency,
             purchase=purchase,
             loan=self.loan_amount if self.mode is MortgageMode.LOAN else None,
+        )
+
+
+class AmortizationRecord(SQLModel, table=True):
+    """An early amortization, as entered: either ``amount`` or ``periods`` is set."""
+
+    __tablename__ = "mortgage_amortizations"  # pyright: ignore[reportAssignmentType, reportIncompatibleVariableOverride]
+    __table_args__ = (UniqueConstraint("mortgage_id", "period"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    mortgage_id: int = Field(foreign_key="mortgages.id", index=True)
+    period: int
+    type: AmortizationType
+    amount: Decimal | None = Field(default=None, sa_type=DecimalString)
+    periods: int | None = None
+
+    def to_domain(self) -> EarlyAmortization:
+        return EarlyAmortization(
+            period=self.period, type=self.type, amount=self.amount, periods=self.periods
         )

@@ -196,6 +196,159 @@ class TestCompare:
         assert client.get("/api/mortgages/compare").status_code == 422
 
 
+class TestAmortizations:
+    @staticmethod
+    def put(client: TestClient, mortgage_id: int, period: int, payload: Payload) -> Payload:
+        response = client.put(f"/api/mortgages/{mortgage_id}/amortizations/{period}", json=payload)
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    def test_capital(self, client: TestClient, reference_loan: Payload) -> None:
+        created = create(client, reference_loan)
+        assert created["amortizations"] == []
+        assert created["current_payment"] == "843.21"
+        assert created["number_of_payments"] == 360
+        body = self.put(client, created["id"], 12, {"type": "capital", "amount": "20000"})
+        assert body["amortizations"] == [
+            {
+                "period": 12,
+                "type": "capital",
+                "amount": "20000",
+                "periods": None,
+                "applied_amount": "20000.00",
+            }
+        ]
+        assert body["schedule"][11]["early_amortization"] == "20000.00"
+        assert body["schedule"][11]["year"] == 1
+        assert body["schedule"][12]["year"] == 2
+        assert body["payment"] == "843.21"
+        assert body["current_payment"] == "757.09"
+        assert body["total_early_amortized"] == "20000.00"
+        assert Decimal(body["interest_saved"]) > 0
+        assert body["payments_saved"] == 0
+        assert client.get(f"/api/mortgages/{created['id']}").json() == body
+
+    def test_periods_by_number(self, client: TestClient, reference_loan: Payload) -> None:
+        created = create(client, reference_loan)
+        body = self.put(client, created["id"], 24, {"type": "periods", "periods": 24})
+        assert body["amortizations"][0]["amount"] is None
+        assert body["amortizations"][0]["applied_amount"] == "9001.33"
+        assert body["number_of_payments"] == 336
+        assert body["payments_saved"] == 24
+        assert len(body["schedule"]) == 336
+
+    def test_replace_and_delete(self, client: TestClient, reference_loan: Payload) -> None:
+        mortgage_id = create(client, reference_loan)["id"]
+        self.put(client, mortgage_id, 12, {"type": "capital", "amount": "1000"})
+        body = self.put(client, mortgage_id, 12, {"type": "periods", "amount": "2000"})
+        assert len(body["amortizations"]) == 1
+        assert body["amortizations"][0]["type"] == "periods"
+        response = client.delete(f"/api/mortgages/{mortgage_id}/amortizations/12")
+        assert response.status_code == 200
+        assert response.json()["amortizations"] == []
+        response = client.delete(f"/api/mortgages/{mortgage_id}/amortizations/12")
+        assert response.status_code == 404
+
+    def test_list_and_compare_include_amortizations(
+        self, client: TestClient, reference_loan: Payload
+    ) -> None:
+        first = create(client, reference_loan)
+        second = create(client, reference_loan)
+        self.put(client, first["id"], 24, {"type": "periods", "periods": 24})
+        listed = client.get("/api/mortgages").json()
+        assert [m["number_of_payments"] for m in listed] == [336, 360]
+        ids = f"{first['id']},{second['id']}"
+        compared = client.get(f"/api/mortgages/compare?ids={ids}").json()["mortgages"]
+        assert compared[0]["payments_saved"] == 24
+
+    @pytest.mark.parametrize(
+        ("period", "payload", "field", "msg"),
+        [
+            (12, {"type": "capital", "amount": "300000"}, "amount", "period 12: must not exceed"),
+            (12, {"type": "periods", "periods": 400}, "periods", "period 12: must be at most"),
+            (361, {"type": "capital", "amount": "1"}, "period", "period 361: the loan is"),
+            (12, {"type": "capital", "periods": 2}, "periods", "only periods"),
+            (12, {"type": "periods"}, "amount", "provide either"),
+        ],
+    )
+    def test_invalid(
+        self,
+        client: TestClient,
+        reference_loan: Payload,
+        period: int,
+        payload: Payload,
+        field: str,
+        msg: str,
+    ) -> None:
+        mortgage_id = create(client, reference_loan)["id"]
+        response = client.put(f"/api/mortgages/{mortgage_id}/amortizations/{period}", json=payload)
+        assert response.status_code == 422
+        [error] = response.json()["detail"]
+        assert error["loc"] == ["body", field]
+        assert error["msg"].startswith(msg)
+        assert client.get(f"/api/mortgages/{mortgage_id}").json()["amortizations"] == []
+
+    @pytest.mark.parametrize(
+        ("path", "payload"),
+        [
+            ("0", {"type": "capital", "amount": "1"}),
+            ("12", {"type": "capital", "amount": "0"}),
+            ("12", {"type": "capital", "amount": "1.001"}),
+            ("12", {"type": "periods", "periods": 0}),
+            ("12", {"type": "lump", "amount": "1"}),
+            ("12", {"type": "capital", "amount": "1", "fee": "1"}),
+        ],
+    )
+    def test_schema_rules(
+        self, client: TestClient, reference_loan: Payload, path: str, payload: Payload
+    ) -> None:
+        mortgage_id = create(client, reference_loan)["id"]
+        url = f"/api/mortgages/{mortgage_id}/amortizations/{path}"
+        assert client.put(url, json=payload).status_code == 422
+
+    def test_conflicts_with_existing_amortizations(
+        self, client: TestClient, reference_loan: Payload
+    ) -> None:
+        mortgage_id = create(client, reference_loan)["id"]
+        self.put(client, mortgage_id, 13, {"type": "capital", "amount": "1000"})
+        # Cancelling the loan at period 12 leaves nothing for period 13.
+        response = client.put(
+            f"/api/mortgages/{mortgage_id}/amortizations/12",
+            json={"type": "periods", "periods": 348},
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"][0]["msg"].startswith("period 13")
+
+    def test_missing_mortgage(self, client: TestClient) -> None:
+        payload = {"type": "capital", "amount": "1"}
+        assert client.put("/api/mortgages/9/amortizations/1", json=payload).status_code == 404
+        assert client.delete("/api/mortgages/9/amortizations/1").status_code == 404
+
+    def test_editing_conditions_deletes_them(
+        self, client: TestClient, reference_loan: Payload
+    ) -> None:
+        mortgage_id = create(client, reference_loan)["id"]
+        self.put(client, mortgage_id, 12, {"type": "capital", "amount": "1000"})
+        url = f"/api/mortgages/{mortgage_id}"
+        body = client.put(url, json={**reference_loan, "name": "Renamed"}).json()
+        assert len(body["amortizations"]) == 1
+        # Same conditions written differently are still the same conditions.
+        body = client.put(url, json={**reference_loan, "tin": "3.000"}).json()
+        assert len(body["amortizations"]) == 1
+        body = client.put(url, json={**reference_loan, "years": 25}).json()
+        assert body["amortizations"] == []
+        assert body["schedule"][11]["early_amortization"] == "0.00"
+
+    def test_deleting_the_mortgage_deletes_them(
+        self, client: TestClient, reference_loan: Payload
+    ) -> None:
+        first = create(client, reference_loan)["id"]
+        self.put(client, first, 12, {"type": "capital", "amount": "1000"})
+        client.delete(f"/api/mortgages/{first}")
+        second = create(client, reference_loan)["id"]
+        assert client.get(f"/api/mortgages/{second}").json()["amortizations"] == []
+
+
 class TestSpa:
     @pytest.fixture
     def spa_client(self, tmp_path: Path) -> TestClient:

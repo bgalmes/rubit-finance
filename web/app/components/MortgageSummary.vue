@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import type { Mortgage } from '~/types/api'
 
-const props = defineProps<{ mortgage: Mortgage }>()
+const props = defineProps<{
+  mortgage: Mortgage
+  /** Whether the mortgage has early amortizations; adds their effect to the stats. */
+  amortized?: boolean
+}>()
 const { t } = useI18n()
 
 const perPeriod = computed(() => t(`frequency.perPeriod.${props.mortgage.frequency}`))
@@ -17,6 +21,23 @@ const stats = computed(() => [
   },
   { label: t('fields.totalInterest'), value: formatEUR(props.mortgage.total_interest) },
   { label: t('fields.totalPaid'), value: formatEUR(props.mortgage.total_paid) },
+  ...(props.amortized
+    ? [
+        {
+          label: t('fields.currentPayment'),
+          value: `${formatEUR(props.mortgage.current_payment)} ${perPeriod.value}`,
+        },
+        {
+          label: t('fields.totalEarlyAmortized'),
+          value: formatEUR(props.mortgage.total_early_amortized),
+        },
+        { label: t('fields.interestSaved'), value: formatEUR(props.mortgage.interest_saved) },
+        {
+          label: t('fields.paymentsSaved'),
+          value: t(`amortization.count.${props.mortgage.frequency}`, props.mortgage.payments_saved),
+        },
+      ]
+    : []),
 ])
 </script>
 

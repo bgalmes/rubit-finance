@@ -3,6 +3,7 @@ import {
   emptyMortgageForm,
   mortgageFormToPayload,
   mortgageToForm,
+  sameConditions,
   validateMortgageForm,
   type MortgageFormState,
 } from '../../app/utils/mortgage-form'
@@ -125,5 +126,20 @@ describe('mortgageToForm', () => {
       initial_savings: 0,
     })
     expect(validateMortgageForm(state)).toEqual([])
+  })
+})
+
+describe('sameConditions', () => {
+  const loan = mortgageFormToPayload(loanForm())
+
+  it('ignores the name and number formatting', () => {
+    expect(sameConditions(loan, { ...loan, name: 'Other' })).toBe(true)
+    expect(sameConditions(loan, { ...loan, tin: '3.000' })).toBe(true)
+  })
+
+  it('detects changed conditions', () => {
+    expect(sameConditions(loan, { ...loan, years: 25 })).toBe(false)
+    expect(sameConditions(loan, { ...loan, frequency: 'annual' })).toBe(false)
+    expect(sameConditions(loan, mortgageFormToPayload(purchaseForm()))).toBe(false)
   })
 })

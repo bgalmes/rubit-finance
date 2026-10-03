@@ -1,8 +1,10 @@
 """Conversions between HTTP schemas, database records and domain objects."""
 
+from collections.abc import Sequence
 from dataclasses import asdict
 
 from rubit.api.schemas import (
+    AmortizationOut,
     AmortizationRowOut,
     LoanMortgageIn,
     MortgageDetailOut,
@@ -10,7 +12,7 @@ from rubit.api.schemas import (
     PurchaseMortgageIn,
 )
 from rubit.domain import MortgageConditions, MortgageSummary, PurchaseInfo, summarize
-from rubit.persistence import MortgageMode, MortgageRecord
+from rubit.persistence import AmortizationRecord, MortgageMode, MortgageRecord
 
 type MortgageInput = PurchaseMortgageIn | LoanMortgageIn
 
@@ -78,18 +80,41 @@ def _to_out(record: MortgageRecord, summary: MortgageSummary) -> MortgageOut:
         loan_amount=summary.loan_amount,
         purchase_percentage=summary.purchase_percentage,
         payment=summary.payment,
+        current_payment=summary.current_payment,
         total_interest=summary.total_interest,
         total_paid=summary.total_paid,
+        total_early_amortized=summary.total_early_amortized,
+        number_of_payments=summary.number_of_payments,
+        interest_saved=summary.interest_saved,
+        payments_saved=summary.payments_saved,
     )
 
 
-def to_out(record: MortgageRecord) -> MortgageOut:
-    return _to_out(record, summarize(record.to_conditions()))
+def _summarize(
+    record: MortgageRecord, amortizations: Sequence[AmortizationRecord]
+) -> MortgageSummary:
+    return summarize(record.to_conditions(), [a.to_domain() for a in amortizations])
 
 
-def to_detail_out(record: MortgageRecord) -> MortgageDetailOut:
-    summary = summarize(record.to_conditions())
+def to_out(record: MortgageRecord, amortizations: Sequence[AmortizationRecord]) -> MortgageOut:
+    return _to_out(record, _summarize(record, amortizations))
+
+
+def to_detail_out(
+    record: MortgageRecord, amortizations: Sequence[AmortizationRecord]
+) -> MortgageDetailOut:
+    summary = _summarize(record, amortizations)
     return MortgageDetailOut(
         **_to_out(record, summary).model_dump(),
+        amortizations=[
+            AmortizationOut(
+                period=a.period,
+                type=a.type,
+                amount=a.amount,
+                periods=a.periods,
+                applied_amount=summary.schedule[a.period - 1].early_amortization,
+            )
+            for a in amortizations
+        ],
         schedule=[AmortizationRowOut(**asdict(row)) for row in summary.schedule],
     )

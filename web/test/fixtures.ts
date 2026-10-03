@@ -14,8 +14,13 @@ export const purchaseMortgage: Mortgage = {
   loan_amount: '200000.00',
   purchase_percentage: '80.00',
   payment: '843.21',
+  current_payment: '843.21',
   total_interest: '103556.37',
   total_paid: '303556.37',
+  total_early_amortized: '0.00',
+  number_of_payments: 360,
+  interest_saved: '0.00',
+  payments_saved: 0,
 }
 
 export const loanMortgage: Mortgage = {
@@ -32,6 +37,11 @@ export const loanMortgage: Mortgage = {
   loan_amount: '100000.00',
   purchase_percentage: null,
   payment: '12950.46',
+  current_payment: '12950.46',
   total_interest: '29504.57',
   total_paid: '129504.57',
+  total_early_amortized: '0.00',
+  number_of_payments: 10,
+  interest_saved: '0.00',
+  payments_saved: 0,
 }

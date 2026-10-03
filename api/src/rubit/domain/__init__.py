@@ -2,6 +2,8 @@
 
 from rubit.domain.mortgage import (
     AmortizationRow,
+    AmortizationType,
+    EarlyAmortization,
     MortgageConditions,
     MortgageSummary,
     MortgageValidationError,
@@ -9,11 +11,15 @@ from rubit.domain.mortgage import (
     PurchaseInfo,
     amortization_schedule,
     periodic_payment,
+    periods_to_repay,
+    present_value,
     summarize,
 )
 
 __all__ = [
     "AmortizationRow",
+    "AmortizationType",
+    "EarlyAmortization",
     "MortgageConditions",
     "MortgageSummary",
     "MortgageValidationError",
@@ -21,5 +27,7 @@ __all__ = [
     "PurchaseInfo",
     "amortization_schedule",
     "periodic_payment",
+    "periods_to_repay",
+    "present_value",
     "summarize",
 ]

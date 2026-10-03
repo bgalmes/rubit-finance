@@ -1,4 +1,10 @@
-import type { Comparison, Mortgage, MortgageDetail, MortgageInput } from '~/types/api'
+import type {
+  AmortizationInput,
+  Comparison,
+  Mortgage,
+  MortgageDetail,
+  MortgageInput,
+} from '~/types/api'
 
 const BASE = '/api/mortgages'
 
@@ -10,6 +16,10 @@ export function useMortgagesApi() {
     update: (id: number, body: MortgageInput) =>
       $fetch<MortgageDetail>(`${BASE}/${id}`, { method: 'PUT', body }),
     remove: (id: number) => $fetch(`${BASE}/${id}`, { method: 'DELETE' }),
+    saveAmortization: (id: number, period: number, body: AmortizationInput) =>
+      $fetch<MortgageDetail>(`${BASE}/${id}/amortizations/${period}`, { method: 'PUT', body }),
+    removeAmortization: (id: number, period: number) =>
+      $fetch<MortgageDetail>(`${BASE}/${id}/amortizations/${period}`, { method: 'DELETE' }),
     compare: (ids: number[]) =>
       $fetch<Comparison>(`${BASE}/compare`, { query: { ids: ids.join(',') } }),
   }

@@ -58,7 +58,7 @@ export function mortgageToForm(mortgage: Mortgage): MortgageFormState {
   }
 }
 
-function hasAtMostTwoDecimals(value: number): boolean {
+export function hasAtMostTwoDecimals(value: number): boolean {
   return Math.abs(Math.round(value * 100) - value * 100) < 1e-6
 }
 
@@ -119,4 +119,16 @@ export function mortgageFormToPayload(state: MortgageFormState): MortgageInput {
     }
   }
   return { ...base, mode: 'loan', loan_amount: String(state.loan_amount ?? 0) }
+}
+
+/** Whether two payloads describe the same loan (the name aside). Amounts compare by value. */
+export function sameConditions(a: MortgageInput, b: MortgageInput): boolean {
+  const { name: _a, ...left } = a
+  const { name: _b, ...right } = b
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)])
+  return [...keys].every((key) => {
+    const x = (left as Record<string, unknown>)[key]
+    const y = (right as Record<string, unknown>)[key]
+    return x === y || (typeof x === 'string' && typeof y === 'string' && Number(x) === Number(y))
+  })
 }

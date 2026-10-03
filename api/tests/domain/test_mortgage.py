@@ -3,12 +3,16 @@ from decimal import Decimal
 import pytest
 
 from rubit.domain import (
+    AmortizationType,
+    EarlyAmortization,
     MortgageConditions,
     MortgageValidationError,
     PaymentFrequency,
     PurchaseInfo,
     amortization_schedule,
     periodic_payment,
+    periods_to_repay,
+    present_value,
     summarize,
 )
 
@@ -34,6 +38,9 @@ class TestReferenceExample:
         schedule = amortization_schedule(loan_mortgage())
         assert len(schedule) == 360
         assert [row.period for row in schedule] == list(range(1, 361))
+        assert [row.year for row in schedule[:13]] == [1] * 12 + [2]
+        assert schedule[-1].year == 30
+        assert all(row.early_amortization == D("0") for row in schedule)
 
     def test_first_row(self) -> None:
         first = amortization_schedule(loan_mortgage())[0]
@@ -116,6 +123,7 @@ class TestSpecialCases:
         summary = summarize(conditions)
         assert summary.payment == D("12950.46")
         assert len(summary.schedule) == 10
+        assert [row.year for row in summary.schedule] == list(range(1, 11))
         assert summary.schedule[-1].balance == D("0.00")
 
     def test_tiny_loan_never_overshoots(self) -> None:
@@ -187,3 +195,208 @@ class TestValidation:
     def test_savings_just_below_limit(self) -> None:
         purchase = PurchaseInfo(price=D("100"), savings=D("109.99"), expenses=D("10"))
         assert purchase.loan_amount == D("0.01")
+
+
+CAPITAL = AmortizationType.CAPITAL
+PERIODS = AmortizationType.PERIODS
+
+
+def capital(period: int, amount: str) -> EarlyAmortization:
+    return EarlyAmortization(period=period, type=CAPITAL, amount=D(amount))
+
+
+def by_amount(period: int, amount: str) -> EarlyAmortization:
+    return EarlyAmortization(period=period, type=PERIODS, amount=D(amount))
+
+
+def by_periods(period: int, periods: int) -> EarlyAmortization:
+    return EarlyAmortization(period=period, type=PERIODS, periods=periods)
+
+
+def assert_consistent(conditions: MortgageConditions, *amortizations: EarlyAmortization) -> None:
+    summary = summarize(conditions, amortizations)
+    schedule = summary.schedule
+    assert schedule[-1].balance == D("0.00")
+    assert all(row.balance >= D("0") for row in schedule)
+    assert sum(row.principal + row.early_amortization for row in schedule) == summary.loan_amount
+    assert schedule[-1].amortized == summary.loan_amount
+    assert summary.total_paid == summary.loan_amount + summary.total_interest
+
+
+class TestNoAmortizations:
+    def test_summary_has_no_savings(self) -> None:
+        summary = summarize(loan_mortgage())
+        assert summary.current_payment == summary.payment
+        assert summary.number_of_payments == 360
+        assert summary.total_early_amortized == D("0")
+        assert summary.interest_saved == D("0")
+        assert summary.payments_saved == 0
+
+
+class TestCapitalAmortization:
+    def test_keeps_term_and_lowers_payment(self) -> None:
+        summary = summarize(loan_mortgage(), [capital(12, "20000")])
+        row = summary.schedule[11]
+        assert row.early_amortization == D("20000.00")
+        assert row.payment == D("843.21")
+        assert row.amortized == summary.schedule[10].amortized + row.principal + D("20000")
+        assert summary.schedule[12].payment == D("757.09")
+        assert summary.number_of_payments == 360
+        assert summary.payments_saved == 0
+        assert summary.payment == D("843.21")
+        assert summary.current_payment == D("757.09")
+        assert summary.total_early_amortized == D("20000.00")
+        assert summary.interest_saved > D("0")
+        assert_consistent(loan_mortgage(), capital(12, "20000"))
+
+    def test_payment_matches_fresh_loan_over_remaining_term(self) -> None:
+        schedule = amortization_schedule(loan_mortgage(), [capital(60, "10000")])
+        expected = periodic_payment(schedule[59].balance, D("0.0025"), 300)
+        assert schedule[60].payment == expected
+
+    def test_full_cancellation(self) -> None:
+        balance = amortization_schedule(loan_mortgage())[11].balance
+        summary = summarize(loan_mortgage(), [capital(12, str(balance))])
+        assert summary.number_of_payments == 12
+        assert summary.payments_saved == 348
+        assert summary.schedule[-1].balance == D("0.00")
+        assert summary.current_payment == D("0.00")
+
+    def test_zero_interest(self) -> None:
+        conditions = loan_mortgage(loan="12000", tin="0", years=1)
+        summary = summarize(conditions, [capital(6, "3000")])
+        assert summary.schedule[6].payment == D("500.00")
+        assert summary.number_of_payments == 12
+        assert summary.interest_saved == D("0")
+        assert_consistent(conditions, capital(6, "3000"))
+
+
+class TestPeriodsAmortization:
+    def test_by_amount_keeps_payment_and_shortens_term(self) -> None:
+        summary = summarize(loan_mortgage(), [by_amount(24, "20000")])
+        assert all(row.payment == D("843.21") for row in summary.schedule[:-1])
+        assert summary.schedule[-1].payment < D("843.21")
+        assert summary.number_of_payments == 309
+        assert summary.payments_saved == 51
+        assert summary.current_payment == D("843.21")
+        assert_consistent(loan_mortgage(), by_amount(24, "20000"))
+
+    def test_by_periods_cuts_exactly_that_many_periods(self) -> None:
+        summary = summarize(loan_mortgage(), [by_periods(24, 24)])
+        assert summary.number_of_payments == 336
+        assert summary.payments_saved == 24
+        assert summary.schedule[23].early_amortization == D("9001.33")
+        assert all(row.payment == D("843.21") for row in summary.schedule[:-1])
+        assert abs(summary.schedule[-1].payment - D("843.21")) < D("1.00")
+        assert_consistent(loan_mortgage(), by_periods(24, 24))
+
+    def test_by_periods_all_remaining_cancels_the_loan(self) -> None:
+        summary = summarize(loan_mortgage(), [by_periods(24, 336)])
+        assert summary.number_of_payments == 24
+        assert summary.schedule[-1].balance == D("0.00")
+        assert summary.current_payment == D("0.00")
+
+    def test_zero_interest(self) -> None:
+        conditions = loan_mortgage(loan="12000", tin="0", years=1)
+        summary = summarize(conditions, [by_periods(2, 3)])
+        assert summary.schedule[1].early_amortization == D("3000.00")
+        assert summary.number_of_payments == 9
+        summary = summarize(conditions, [by_amount(2, "2500")])
+        assert summary.number_of_payments == 10
+        assert summary.schedule[-1].payment == D("500.00")
+        assert_consistent(conditions, by_amount(2, "2500"))
+
+    def test_annual_frequency(self) -> None:
+        conditions = loan_mortgage(
+            loan="100000", tin="5", years=10, frequency=PaymentFrequency.ANNUAL
+        )
+        summary = summarize(conditions, [by_periods(2, 3)])
+        assert summary.number_of_payments == 7
+        assert [row.year for row in summary.schedule] == list(range(1, 8))
+        assert_consistent(conditions, by_periods(2, 3))
+
+    def test_zero_payment_keeps_the_term(self) -> None:
+        # 1 € over 600 months: the payment rounds to 0.00, the last period pays it all.
+        conditions = loan_mortgage(loan="1", tin="0", years=50)
+        schedule = amortization_schedule(conditions, [by_amount(10, "0.50")])
+        assert len(schedule) == 600
+        assert schedule[-1].payment == D("0.50")
+
+
+class TestCombinedAmortizations:
+    def test_capital_after_shortening_keeps_the_shortened_term(self) -> None:
+        amortizations = [
+            capital(12, "20000"),
+            by_periods(24, 24),
+            by_amount(60, "10000"),
+            capital(100, "5000"),
+        ]
+        summary = summarize(loan_mortgage(), amortizations)
+        before = summarize(loan_mortgage(), amortizations[:3])
+        assert summary.number_of_payments == before.number_of_payments
+        assert summary.current_payment < before.current_payment
+        assert summary.total_early_amortized == sum(
+            (row.early_amortization for row in summary.schedule), D("0")
+        )
+        assert_consistent(loan_mortgage(), *amortizations)
+
+    def test_order_does_not_matter(self) -> None:
+        first = amortization_schedule(loan_mortgage(), [capital(12, "1000"), by_periods(24, 2)])
+        second = amortization_schedule(loan_mortgage(), [by_periods(24, 2), capital(12, "1000")])
+        assert first == second
+
+
+class TestAmortizationHelpers:
+    def test_present_value_inverts_periodic_payment(self) -> None:
+        assert present_value(D("843.21"), D("0.0025"), 360) == D("200000.46")
+        assert present_value(D("100"), D("0"), 6) == D("600")
+        assert present_value(D("100"), D("0.01"), 0) == D("0.00")
+
+    def test_periods_to_repay(self) -> None:
+        assert periods_to_repay(D("200000"), D("843.21"), D("0.0025")) == 360
+        assert periods_to_repay(D("1000"), D("300"), D("0")) == 4
+
+
+class TestAmortizationValidation:
+    @pytest.mark.parametrize(
+        ("kwargs", "field_name"),
+        [
+            ({"period": 0, "type": CAPITAL, "amount": D("1")}, "period"),
+            ({"period": 1, "type": CAPITAL}, "amount"),
+            ({"period": 1, "type": PERIODS, "amount": D("1"), "periods": 1}, "amount"),
+            ({"period": 1, "type": CAPITAL, "periods": 1}, "periods"),
+            ({"period": 1, "type": CAPITAL, "amount": D("0")}, "amount"),
+            ({"period": 1, "type": PERIODS, "periods": 0}, "periods"),
+        ],
+    )
+    def test_rules(self, kwargs: dict[str, object], field_name: str) -> None:
+        with pytest.raises(MortgageValidationError) as exc:
+            EarlyAmortization(**kwargs)  # pyright: ignore[reportArgumentType]
+        assert exc.value.field_name == field_name
+
+    @pytest.mark.parametrize(
+        ("amortizations", "field_name", "message"),
+        [
+            ([capital(12, "199999")], "amount", "period 12: must not exceed"),
+            ([by_periods(12, 349)], "periods", "period 12: must be at most 348"),
+            ([capital(360, "1")], "period", "period 360: the loan is already paid off"),
+            ([capital(361, "1")], "period", "period 361: the loan is already paid off"),
+            (
+                [by_periods(12, 348), capital(13, "1")],
+                "period",
+                "period 13: the loan is already paid off",
+            ),
+            (
+                [capital(12, "1"), by_amount(12, "1")],
+                "period",
+                "period 12: only one amortization per period",
+            ),
+        ],
+    )
+    def test_schedule_rules(
+        self, amortizations: list[EarlyAmortization], field_name: str, message: str
+    ) -> None:
+        with pytest.raises(MortgageValidationError) as exc:
+            amortization_schedule(loan_mortgage(), amortizations)
+        assert exc.value.field_name == field_name
+        assert exc.value.message.startswith(message)
